@@ -1,94 +1,52 @@
-"use client";
+import Link from "next/link";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth-client";
-import { toBanglaNumber } from "@/lib/utils";
-import toast from "react-hot-toast";
+export default async function ProductDetails({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  let product = null;
 
-export default function ProductDetailPage() {
-  const { data: session, isPending } = useSession();
-  const router = useRouter();
-  const params = useParams();
-  const slug = params?.slug as string;
-
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isPending && !session) {
-      toast.error("বিস্তারিত দেখতে অনুগ্রহ করে লগইন করুন");
-      router.push("/signin");
-    }
-  }, [session, isPending, router]);
-
-  useEffect(() => {
-    async function fetchDetail() {
-      try {
-        const res = await fetch(`https://openapi.programming-hero.com/api/bazardor/products/${slug}`);
-        const data = await res.json();
-        setProduct(data.data || data);
-      } catch {
-        setProduct(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    if (slug) fetchDetail();
-  }, [slug]);
-
-  if (isPending || loading) {
-    return <div className="p-12 text-center text-gray-500">তথ্য লোড হচ্ছে...</div>;
+  try {
+    const res = await fetch("https://openapi.programming-hero.com/api/bazardor/products", { cache: "no-store" });
+    const json = await res.json();
+    const list = Array.isArray(json) ? json : json.data || [];
+    product = list.find((p: any) => String(p.slug) === slug || String(p.id) === slug);
+  } catch (err) {
+    console.error(err);
   }
 
-  if (!product) {
-    return <div className="p-12 text-center text-gray-500">পণ্য পাওয়া যায়নি।</div>;
-  }
+  const name = product?.nameBn ?? "পণ্যের বিবরণ";
+  const price = product?.today ?? 100;
+  const category = product?.categoryNameBn ?? "সাধারণ";
+  const unit = product?.unit ?? "কেজি";
+  const change = product?.change?.pct ?? 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-white border rounded-2xl p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center gap-6 border-b pb-6">
-          <div className="text-6xl p-6 bg-emerald-50 rounded-2xl">{product.emoji || "🥬"}</div>
-          <div className="text-center sm:text-left">
-            <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded">
-              {product.category || "সবজি"}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mt-2">{product.name}</h1>
-            <p className="text-sm text-gray-500 mt-1">{product.description || "নিত্যদিনের বাজার তালিকা অনুযায়ী হালনাগাদকৃত দর।"}</p>
-            <p className="text-sm font-semibold text-gray-700 mt-1">একক: {product.unit || "প্রতি কেজি"}</p>
+    <div className="min-h-screen bg-[#fbfaf6] p-4 sm:p-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-lg">
+        <Link href="/" className="text-sm font-bold text-emerald-800 hover:underline">← মূল পাতায় ফিরে যান</Link>
+        <div className="mt-6 flex items-center gap-4">
+          <div className="h-20 w-20 flex items-center justify-center bg-[#f3f7ec] rounded-2xl text-4xl">{product?.image ?? "🛒"}</div>
+          <div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-stone-100 rounded-full text-stone-600">{category}</span>
+            <h1 className="text-2xl sm:text-3xl font-black text-stone-800 mt-1">{name}</h1>
           </div>
         </div>
-
-        <div className="grid grid-cols-3 gap-4 my-8 text-center">
-          <div className="p-4 bg-gray-50 border rounded-xl">
-            <p className="text-xs text-gray-500">সর্বনিম্ন দাম</p>
-            <p className="text-lg font-bold text-gray-900 mt-1">{toBanglaNumber(product.minPrice || product.price || 0)} ৳</p>
+        <div className="mt-6 grid grid-cols-2 gap-4 border-t border-b border-stone-100 py-6">
+          <div className="p-4 bg-stone-50 rounded-2xl">
+            <p className="text-xs text-stone-500">বর্তমান দর</p>
+            <p className="text-2xl font-black text-[#174c35] mt-1">{price} টাকা / {unit}</p>
           </div>
-          <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-            <p className="text-xs text-emerald-700 font-medium">গড় দাম</p>
-            <p className="text-xl font-black text-emerald-800 mt-1">{toBanglaNumber(product.price || 0)} ৳</p>
-          </div>
-          <div className="p-4 bg-gray-50 border rounded-xl">
-            <p className="text-xs text-gray-500">সর্বোচ্চ দাম</p>
-            <p className="text-lg font-bold text-gray-900 mt-1">{toBanglaNumber(product.maxPrice || product.price || 0)} ৳</p>
+          <div className="p-4 bg-stone-50 rounded-2xl">
+            <p className="text-xs text-stone-500">পরিবর্তন</p>
+            <p className={`text-2xl font-black mt-1 ${change >= 0 ? "text-rose-600" : "text-emerald-700"}`}>
+              {change >= 0 ? "▲ +" : "▼ "}{change}%
+            </p>
           </div>
         </div>
-
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">বাজারভিত্তিক আজকের দাম</h2>
-          <div className="divide-y border rounded-xl overflow-hidden">
-            {[
-              { bazar: "কাওরান বাজার", price: product.price || 120 },
-              { bazar: "মিরপুর ১ নম্বর কাঁচাবাজার", price: (product.price || 120) + 5 },
-              { bazar: "যাত্রাবাড়ী আড়ত", price: (product.price || 120) - 5 },
-            ].map((item, idx) => (
-              <div key={idx} className="p-3.5 flex justify-between items-center bg-white hover:bg-gray-50">
-                <span className="font-medium text-gray-700">{item.bazar}</span>
-                <span className="font-bold text-gray-900">{toBanglaNumber(item.price)} টাকা/{product.unit || "কেজি"}</span>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6">
+          <h3 className="font-bold text-stone-800">বাজার বিবরণ</h3>
+          <p className="text-stone-600 text-sm mt-2 leading-relaxed">
+            এটি স্থানীয় বাজারের আজকের হালনাগাদ দর। পাইকারি ও খুচরা বাজার ভেদে দাম কিছুটা পরিবর্তিত হতে পারে।
+          </p>
         </div>
       </div>
     </div>
