@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Product = {
   id: string | number;
@@ -14,8 +14,7 @@ type Product = {
   slug: string;
 };
 
-const API_URL =
-  "https://openapi.programming-hero.com/api/bazardor/products";
+const API_URL = "https://openapi.programming-hero.com/api/bazardor/products";
 
 const demoProducts: Product[] = [
   { id: 1, name: "মিনিকেট চাল", category: "চাল", price: 78, change: 2.1, unit: "কেজি", emoji: "🍚", slug: "miniket-chal" },
@@ -45,61 +44,40 @@ const banglaNumber = (value: number) =>
     maximumFractionDigits: 1,
   }).format(value);
 
+// API থেকে আসা ডেটা সুরক্ষিতভাবে পার্স করার ফাংশন
 function normalizeProducts(payload: any): Product[] {
-  const list = Array.isArray(payload)
-    ? payload
-    : Array.isArray(payload?.data)
-      ? payload.data
-      : Array.isArray(payload?.data?.products)
-        ? payload.data.products
-        : Array.isArray(payload?.products)
-          ? payload.products
-          : [];
+  let list: any[] = [];
+  if (Array.isArray(payload)) {
+    list = payload;
+  } else if (payload && Array.isArray(payload.data)) {
+    list = payload.data;
+  } else if (payload && Array.isArray(payload.products)) {
+    list = payload.products;
+  }
 
   return list.map((item: any, index: number) => {
-    const name = item.name ?? item.title ?? item.productName ?? "পণ্য";
-    const category =
-      item.category?.name ?? item.category ?? item.categoryName ?? "অন্যান্য";
-    const rawPrice =
-      item.price ?? item.currentPrice ?? item.todayPrice ?? item.averagePrice ?? 0;
-    const rawChange =
-      item.changePercentage ?? item.priceChange ?? item.change ?? 0;
-    const price = Number(String(rawPrice).replace(/[^\d.-]/g, "")) || 0;
-    const change = Number(String(rawChange).replace(/[^\d.-]/g, "")) || 0;
-    const unit = item.unit ?? item.unitName ?? "কেজি";
-    const slug = String(item.slug ?? item.id ?? index + 1);
-
-    const emojiMap: Record<string, string> = {
-      চাল: "🍚",
-      rice: "🍚",
-      ডাল: "🫘",
-      lentil: "🫘",
-      সবজি: "🥬",
-      vegetable: "🥬",
-      তেল: "🫙",
-      oil: "🫙",
-      মাছ: "🐟",
-      fish: "🐟",
-      মাংস: "🍗",
-      meat: "🍗",
-      ডিম: "🥚",
-      egg: "🥚",
-      আলু: "🥔",
-      potato: "🥔",
-      পেঁয়াজ: "🧅",
-      onion: "🧅",
+    const name = item.nameBn ?? item.name ?? "পণ্য";
+    const category = item.categoryNameBn ?? item.category ?? "অন্যান্য";
+    const price = Number(item.today) || Number(item.price) || 0;
+    const change = Number(item.change?.pct) || Number(item.change) || 0;
+    const unitNames: Record<string, string> = {
+      kg: "কেজি",
+      liter: "লিটার",
+      piece: "টি",
+      dozen: "ডজন",
+      hali: "হালি",
     };
+    const unit = unitNames[item.unit] ?? item.unit ?? "কেজি";
 
     return {
-      id: item.id ?? slug,
+      id: item.id ?? item._id ?? index + 1,
       name,
-      category:
-        typeof category === "string" ? category : "অন্যান্য",
+      category,
       price,
       change,
-      unit: String(unit).replace(/^প্রতি\s*/, ""),
-      emoji: item.emoji ?? emojiMap[String(category).toLowerCase()] ?? "🛒",
-      slug,
+      unit,
+      emoji: item.image ?? item.categoryIcon ?? "🛒",
+      slug: String(item.slug ?? item.id ?? index + 1),
     };
   });
 }
@@ -118,7 +96,7 @@ function ProductCard({ product }: { product: Product }) {
   const down = product.change < 0;
 
   return (
-    <a
+    <Link
       href={`/product/${encodeURIComponent(product.slug)}`}
       className="group rounded-2xl border border-stone-200/80 bg-white p-4 transition duration-200 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-900/5 sm:p-5"
     >
@@ -139,7 +117,6 @@ function ProductCard({ product }: { product: Product }) {
           {banglaNumber(Math.abs(product.change))}%
         </span>
       </div>
-
       <div className="mt-4">
         <p className="text-xs font-medium text-stone-400">
           {product.category}
@@ -151,7 +128,6 @@ function ProductCard({ product }: { product: Product }) {
           প্রতি {product.unit}
         </p>
       </div>
-
       <div className="mt-4 flex items-end justify-between border-t border-dashed border-stone-200 pt-4">
         <div>
           <p className="text-xs text-stone-500">আজকের দাম</p>
@@ -164,7 +140,7 @@ function ProductCard({ product }: { product: Product }) {
           →
         </span>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -181,7 +157,6 @@ export default function Home() {
       try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error("API request failed");
-
         const payload = await response.json();
         const data = normalizeProducts(payload);
 
@@ -190,7 +165,6 @@ export default function Home() {
           setApiConnected(true);
         }
       } catch {
-        // API unavailable হলে demo data দিয়ে homepage চলবে।
         if (active) setApiConnected(false);
       } finally {
         if (active) setLoading(false);
@@ -198,6 +172,7 @@ export default function Home() {
     }
 
     loadProducts();
+
     return () => {
       active = false;
     };
@@ -207,7 +182,7 @@ export default function Home() {
     activeCategory === "সব"
       ? products
       : products.filter((p) =>
-          p.category.toLowerCase().includes(activeCategory.toLowerCase()),
+          p.category.toLowerCase().includes(activeCategory.toLowerCase())
         );
 
   const risers = [...products]
@@ -232,7 +207,7 @@ export default function Home() {
 
       <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-[#fbfaf6]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <a href="/" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#174c35] text-2xl shadow-lg shadow-emerald-950/10">
               🛒
             </span>
@@ -244,7 +219,7 @@ export default function Home() {
                 {formatDate()}
               </span>
             </span>
-          </a>
+          </Link>
 
           <nav className="hidden items-center gap-5 text-sm font-medium text-stone-600 md:flex">
             <a href="#price-up" className="transition hover:text-emerald-700">
@@ -259,18 +234,18 @@ export default function Home() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <a
+            <Link
               href="/signin"
               className="rounded-xl px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100"
             >
               সাইন ইন
-            </a>
-            <a
+            </Link>
+            <Link
               href="/signup"
               className="rounded-xl bg-[#174c35] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#103b29] sm:px-4"
             >
               সাইন আপ
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -298,6 +273,7 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Ticker Section */}
       <div className="overflow-hidden border-b border-emerald-100 bg-white">
         <div className="ticker-track flex w-max items-center gap-8 py-3">
           {[...tickerProducts, ...tickerProducts].map((p, i) => (
@@ -324,6 +300,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Hero Section */}
       <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-20">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 sm:text-sm">
@@ -431,6 +408,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Price Up Section */}
       <section id="price-up" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-3">
           <div>
@@ -457,7 +435,9 @@ export default function Home() {
           </div>
         ) : risers.length ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {risers.map((p) => <ProductCard key={p.id} product={p} />)}
+            {risers.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         ) : (
           <p className="rounded-2xl bg-white p-6 text-sm text-stone-500">
@@ -466,6 +446,7 @@ export default function Home() {
         )}
       </section>
 
+      {/* Price Down Section */}
       <section id="price-down" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6">
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
@@ -487,7 +468,9 @@ export default function Home() {
           </div>
         ) : fallers.length ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {fallers.map((p) => <ProductCard key={p.id} product={p} />)}
+            {fallers.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         ) : (
           <p className="rounded-2xl bg-white p-6 text-sm text-stone-500">
@@ -496,6 +479,7 @@ export default function Home() {
         )}
       </section>
 
+      {/* All Products Section */}
       <section id="সব-পণ্য" className="mt-8 bg-[#f1f3e9] py-12 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -560,17 +544,19 @@ export default function Home() {
 
           {!apiConnected && !loading && (
             <p className="mt-5 text-xs leading-6 text-stone-500">
-              প্রদর্শিত কিছু দাম নমুনা তথ্য। API থেকে প্রকৃত তথ্য পাওয়া গেলে
-              তা স্বয়ংক্রিয়ভাবে দেখানো হবে।
+              প্রদর্শিত কিছু দাম নমুনা তথ্য। API থেকে প্রকৃত তথ্য পাওয়া গেলে তা স্বয়ংক্রিয়ভাবে দেখানো হবে।
             </p>
           )}
         </div>
       </section>
 
+      {/* Footer */}
       <footer className="bg-[#173f2d] text-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
-            <a href="/" className="text-2xl font-black">🛒 বাজার দর</a>
+            <Link href="/" className="text-2xl font-black">
+              🛒 বাজার দর
+            </Link>
             <p className="mt-2 text-sm text-emerald-100">
               প্রয়োজনীয় পণ্যের দাম এক নজরে।
             </p>
