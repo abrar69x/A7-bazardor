@@ -1,42 +1,43 @@
 "use client";
-
-import { useSession } from "@/lib/auth-client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export default function ProfilePage() {
-  const { data: session, isPending } = useSession();
   const router = useRouter();
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
   useEffect(() => {
-    if (!isPending && !session) {
-      router.push("/signin");
-    }
-  }, [session, isPending, router]);
+    const saved = localStorage.getItem("user");
+    if (saved) setUser(JSON.parse(saved));
+  }, []);
 
-  if (isPending || !session) return <div className="p-12 text-center text-gray-500">লোড হচ্ছে...</div>;
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    router.push("/signin");
+  };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <div className="bg-white border rounded-2xl p-6 sm:p-8 shadow-sm">
-        <h1 className="text-2xl font-black text-gray-900 mb-6">আমার প্রোফাইল</h1>
-        <div className="space-y-4 mb-6">
-          <div>
-            <span className="text-xs text-gray-400 block">নাম</span>
-            <span className="font-semibold text-gray-800">{session.user?.name || "নাম পাওয়া যায়নি"}</span>
+    <div className="min-h-screen bg-[#fbfaf6] p-4 sm:p-8">
+      <div className="max-w-xl mx-auto bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-lg">
+        <div className="flex justify-between items-center">
+          <Link href="/" className="text-sm font-bold text-emerald-800 hover:underline">← হোমপেজে যান</Link>
+          <button onClick={handleLogout} className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg">লগআউট</button>
+        </div>
+        <div className="mt-6 text-center">
+          <div className="w-20 h-20 bg-[#174c35] text-white text-3xl font-bold flex items-center justify-center rounded-full mx-auto">
+            {user?.name ? user.name[0] : "ব"}
           </div>
-          <div>
-            <span className="text-xs text-gray-400 block">ইমেইল</span>
-            <span className="font-semibold text-gray-800">{session.user?.email}</span>
+          <h2 className="text-2xl font-black text-stone-800 mt-4">{user?.name || "অতিথি ব্যবহারকারী"}</h2>
+          <p className="text-sm text-stone-500 mt-1">{user?.email || "user@example.com"}</p>
+        </div>
+        <div className="mt-8 border-t border-stone-100 pt-6">
+          <h3 className="font-bold text-stone-800 mb-3">আপনার তথ্য</h3>
+          <div className="space-y-2 text-sm text-stone-600 bg-stone-50 p-4 rounded-2xl">
+            <p><strong>স্ট্যাটাস:</strong> সক্রিয় সদস্য</p>
+            <p><strong>নোটিফিকেশন:</strong> বাজারদর অ্যালার্ট চালু</p>
           </div>
         </div>
-        <Link
-          href="/profile/update"
-          className="inline-block w-full text-center py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition"
-        >
-          তথ্য পরিবর্তন করুন
-        </Link>
       </div>
     </div>
   );
