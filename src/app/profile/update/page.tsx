@@ -1,52 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { useSession, updateUser } from "@/lib/auth-client";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import Link from "next/link";
 
 export default function UpdateProfilePage() {
-  const { data: session } = useSession();
-  const [name, setName] = useState(session?.user?.name || "");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await updateUser({ name });
-      toast.success("তথ্য সফলভাবে আপডেট করা হয়েছে");
-      router.push("/profile");
-    } catch {
-      toast.error("আপডেট করা সম্ভব হয়নি");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const saved = localStorage.getItem("user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setName(parsed.name || "");
+        setEmail(parsed.email || "");
+      } catch (e) {
+        console.error(e);
+      }
     }
+  }, []);
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem("user", JSON.stringify({ name, email }));
+    router.push("/profile");
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <div className="bg-white border rounded-2xl p-6 sm:p-8 shadow-sm">
-        <h1 className="text-2xl font-black text-gray-900 mb-6">নাম আপডেট করুন</h1>
-        <form onSubmit={handleUpdate} className="space-y-4">
+    <div className="min-h-screen bg-[#fbfaf6] p-4 sm:p-8 flex items-center justify-center">
+      <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-lg">
+        <Link href="/profile" className="text-sm font-bold text-emerald-800 hover:underline">
+          ← প্রোফাইলে ফিরে যান
+        </Link>
+        <h2 className="text-2xl font-black text-stone-800 mt-4">প্রোফাইল আপডেট</h2>
+        <form onSubmit={handleUpdate} className="mt-6 space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">নতুন নাম</label>
+            <label className="block text-xs font-bold text-stone-600 uppercase">নাম</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg p-2.5 text-sm outline-none focus:border-emerald-600"
-              placeholder="আপনার নতুন নাম দিন"
+              className="mt-1 w-full rounded-xl border border-stone-200 p-3 text-sm focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-stone-600 uppercase">ইমেইল</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-stone-200 p-3 text-sm focus:border-emerald-500 focus:outline-none"
             />
           </div>
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition"
+            className="w-full mt-2 rounded-xl bg-[#174c35] p-3 text-sm font-bold text-white hover:bg-[#103b29]"
           >
-            {loading ? "আপডেট হচ্ছে..." : "Update Information"}
+            সংরক্ষণ করুন
           </button>
         </form>
       </div>

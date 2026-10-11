@@ -44,7 +44,6 @@ const banglaNumber = (value: number) =>
     maximumFractionDigits: 1,
   }).format(value);
 
-// API থেকে আসা ডেটা সুরক্ষিতভাবে পার্স করার ফাংশন
 function normalizeProducts(payload: any): Product[] {
   let list: any[] = [];
   if (Array.isArray(payload)) {
@@ -80,15 +79,6 @@ function normalizeProducts(payload: any): Product[] {
       slug: String(item.slug ?? item.id ?? index + 1),
     };
   });
-}
-
-function formatDate() {
-  return new Intl.DateTimeFormat("bn-BD", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date());
 }
 
 function ProductCard({ product }: { product: Product }) {
@@ -145,6 +135,7 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 export default function Home() {
+  const [currentDate, setCurrentDate] = useState("রবিবার, ১১ অক্টোবর, ২০২৬");
   const [products, setProducts] = useState<Product[]>(demoProducts);
   const [activeCategory, setActiveCategory] = useState("সব");
   const [loading, setLoading] = useState(true);
@@ -152,6 +143,20 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
+
+    try {
+      const now = new Date();
+      setCurrentDate(
+        new Intl.DateTimeFormat("bn-BD", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(now)
+      );
+    } catch {
+      // fallback
+    }
 
     async function loadProducts() {
       try {
@@ -216,7 +221,7 @@ export default function Home() {
                 বাজার দর
               </span>
               <span className="block text-[10px] text-stone-500 sm:text-xs">
-                {formatDate()}
+                {currentDate}
               </span>
             </span>
           </Link>
@@ -273,11 +278,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Ticker Section */}
+      {/* Ticker */}
       <div className="overflow-hidden border-b border-emerald-100 bg-white">
         <div className="ticker-track flex w-max items-center gap-8 py-3">
           {[...tickerProducts, ...tickerProducts].map((p, i) => (
-            <span key={`${p.id}-${i}`} className="flex items-center gap-2 text-sm">
+            <span key={`ticker-${p.id}-${i}`} className="flex items-center gap-2 text-sm">
               <span>{p.emoji}</span>
               <span className="font-semibold text-stone-700">{p.name}</span>
               <span className="font-bold text-[#174c35]">
@@ -300,7 +305,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero Section */}
+      {/* Hero */}
       <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-20">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 sm:text-sm">
@@ -408,7 +413,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Price Up Section */}
+      {/* Price Up */}
       <section id="price-up" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-3">
           <div>
@@ -446,7 +451,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* Price Down Section */}
+      {/* Price Down */}
       <section id="price-down" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6">
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
@@ -479,7 +484,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* All Products Section */}
+      {/* All Products */}
       <section id="সব-পণ্য" className="mt-8 bg-[#f1f3e9] py-12 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -566,7 +571,7 @@ export default function Home() {
           </p>
         </div>
         <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-emerald-100">
-          © {new Date().getFullYear()} বাজার দর · সর্বস্বত্ব সংরক্ষিত
+          © ২০২৬ বাজার দর · সর্বস্বত্ব সংরক্ষিত
         </div>
       </footer>
     </main>
